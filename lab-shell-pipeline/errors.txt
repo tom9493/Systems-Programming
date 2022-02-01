@@ -1,0 +1,1 @@
+gcc -Wall -O2    tsh.c   -o tsh

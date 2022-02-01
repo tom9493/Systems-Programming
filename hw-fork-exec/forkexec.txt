@@ -1,0 +1,97 @@
+1. exec.c prints the process ID of itself. Then it sleeps for 30 seconds. It exits if there is no additional argument. Else, it replaces itself with the program passed as an arugment and runs it.
+
+2. The final printf statement prints if the program given as an argument does not exist.
+
+3. 
+./exec /bin/cat
+Program "/.exec" has pid 1719449
+Running eec of "/bin/cat"
+
+4. ps -p 1719449 -o user,pid,ppid,state,ucmd
+	 
+USER         PID    PPID S CMD
+tom9493  1720510 1711730 S exec
+USER         PID    PPID S CMD
+tom9493  1720510 1711730 S cat
+
+5. The only difference between the outputs is the CMD section. The CMD was exec and then turn into the argument we gave it.
+
+6.
+Program "./exec" has pid 1723535. Sleeping.
+Running exec of "/does-not-exist"
+End of program "./exec".
+The program immediately printed the "end" statement because it did not exist.
+
+7. fork.c creates a replica of the program passed to it and runs it from where fork is called in the program. The only difference between the child and parent are the process IDs.
+
+8. Child prints in sections A,B, and D. Parent prints in sections A,C, and D.
+
+9. 
+ps -p 1726593 -o user,pid,ppid,state,ucmd
+USER         PID    PPID S CMD
+tom9493  1726593 1726592 S fork
+ps -p 1726593 -o user,pid,ppid,state,ucmd
+USER         PID    PPID S CMD
+tom9493  1726593 1726592 Z fork <defunct>
+
+10. One of them is sleeping while the other is in a zombie state
+
+11. waitpid(0, NULL, 0) can go before the second sleep statement in section C. This way, it won't execute the second sleep statement until the child process ends, and it can reap it before it goes to sleep again.
+
+12. 
+ps -p 3298449 -o user,pid,ppid,state,ucmd --forest 
+USER         PID    PPID S CMD
+tom9493  3298449 3298448 S fork
+ps -p 3298449 -o user,pid,ppid,state,ucmd --forest
+USER         PID    PPID S CMD
+
+13. The parent process waited for the child process to end and reaped it before executing the second sleep statement. The child process exits and gets reaped after it prints "Section B done sleeping". That's why the second ps statement shows nothing.
+
+14.
+ps -p 3439743 -o user,pid,ppid,state,ucmd --forest
+USER         PID    PPID S CMD
+tom9493  3439743 3439742 S fork
+ps -p 3439743 -o user,pid,ppid,state,ucmd --forest
+USER         PID    PPID S CMD
+tom9493  3439743       1 S fork
+
+15. The parent process ID of the child became 1 as the original parent terminated before the child terminated. This made the init process with ID 1 adopt the child. 
+
+16.
+BEFORE FORK
+SECTION A
+SECTION C
+SECTION A
+SECTION B
+
+17. Both processes from fork.c wrote to the same file.
+
+18. "hello from section B" was printed to stdout along with the other output not commented out from previous exercises.
+
+19.
+Starting program; process has pid 3541865
+Section A;  pid 3541865
+Section C
+Section A;  pid 3541866
+Section B
+Program "./fork" has pid 3541866. Sleeping.
+Running exec of "/bin/cat"
+foobar
+
+20.
+From stdout:
+Starting program; process has pid 3545132
+Section A;  pid 3545132
+Section C
+Section A;  pid 3545133
+Section B
+Program "./fork" has pid 3545133. Sleeping.
+Running exec of "/bin/cat"
+
+From fork-output.txt:
+BEFORE FORK
+SECTION A
+SECTION C
+SECTION A
+SECTION B
+foobar

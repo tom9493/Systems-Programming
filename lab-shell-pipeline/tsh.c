@@ -106,10 +106,123 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+	char *argv[128];
+	int cmds[128];
+	int stdin_redir[128];
+	int stdout_redir[128];
+	parseline(cmdline, argv);
+	int pa = parseargs(argv, cmds, stdin_redir, stdout_redir);
+	builtin_cmd(argv);
+
+	if (pa == 1) {
+		int pid = fork();
+
+		if (pid == 0) {
+			// Child function
+			// Single command
+			// Redirection
+			if (stdin_redir[0] != -1) { 
+				FILE* inputFile = fopen(argv[stdin_redir[0]], "r");
+				int readDescriptor = fileno(inputFile);
+				dup2(readDescriptor, STDIN_FILENO);
+				close(readDescriptor);	
+			} 
+
+			if (stdout_redir[0] != -1) {
+				FILE* outputFile = fopen(argv[stdout_redir[0]], "w");
+				int writeDescriptor = fileno(outputFile);
+				dup2(writeDescriptor, STDOUT_FILENO);
+				close(writeDescriptor);
+			}
+
+			// Execute command
+			char *newEnv[] = { NULL };
+			execve(argv[cmds[0]], &argv[cmds[0]], newEnv); 
+			exit(0);
+
+		} else {
+			// Parent 
+			setpgid(pid, pid);
+			waitpid(pid, NULL, 0);
+
+		}
+	} else {
+		
+		int pgid = 0;
+		int pids[pa];
+		int fds[2];
+		int save0 = -1;
+		int save1 = -1;
+		// If there are multiple commands
+		for (int i = 0; i < pa; ++i) { 
+			if (i != 0) { save0 = fds[0]; save1 = fds[1]; } 	// Saves previous pipe's variables
+			if (i != (pa - 1)) { 					// Only creates pipe if its not the last command
+				if (pipe(fds) == -1) { printf("Error with pipe\n"); return; }
+			}
+
+			// Creates a child and puts the pid in the same group as the first child
+			int pid = fork();
+	
+			if (pid != 0) {
+				if (i == 0) { pgid = pid; }
+				if (i != 0) { close(save0); close(save1); }  	// Closes previous pipe's descriptors after next child inherits them for use
+				setpgid(pid, pgid);
+				pids[i] = pid;
+			} 
+
+			else {
+				// Child function
+				
+				if (stdin_redir[i] != -1) { 
+					FILE* inputFile = fopen(argv[stdin_redir[i]], "r");
+					int readDescriptor = fileno(inputFile);
+					dup2(readDescriptor, STDIN_FILENO);
+					close(readDescriptor);	
+				} 
+
+				if (stdout_redir[i] != -1) {
+					FILE* outputFile = fopen(argv[stdout_redir[i]], "w");
+					int writeDescriptor = fileno(outputFile);
+					dup2(writeDescriptor, STDOUT_FILENO);
+					close(writeDescriptor);
+				}
+					
+				if (i == 0) {
+				       	dup2(fds[1], STDOUT_FILENO);	
+				}
+
+				else if (i != 0 && i != (pa - 1)) {
+					dup2(save0, STDIN_FILENO);
+					dup2(fds[1], STDOUT_FILENO);
+				}
+
+				else if (i == (pa - 1)) {
+					dup2(save0, STDIN_FILENO);
+				}
+
+				close(fds[0]);
+				close(fds[1]);
+				if (save0 != -1) { close(save0); close(save1); }
+
+				
+				// Execute command
+				char *newEnv[] = { NULL };
+				execve(argv[cmds[i]], &argv[cmds[i]], newEnv); 
+
+			}
+		}
+		for (int i = 0; i < pa; ++i) {
+			waitpid(pids[i], NULL, 0); // Waits for all processes after they have begun executing
+		}
+	}
+
+	//printf("You entered: %s\n pa = %d\n", cmdline, pa);
+
     return;
 }
 
-/* 
+
+/*	 
  * parseargs - Parse the arguments to identify pipelined commands
  * 
  * Walk through each of the arguments to find each pipelined command.  If the
@@ -212,28 +325,23 @@ int parseline(const char *cmdline, char **argv)
 	    delim = strchr(buf, '\'');
 	}
 	else {
-	    delim = strchr(buf, ' ');
+		delim = strchr(buf, ' ');
 	}
     }
     argv[argc] = NULL;
-    
-    if (argc == 0)  /* ignore blank line */
-	return 1;
 
-    /* should the job run in the background? */
+    if (argc == 0)
+	    return 1;
+
     if ((bg = (*argv[argc-1] == '&')) != 0) {
-	argv[--argc] = NULL;
+	    argv[--argc] = NULL;
     }
-    return bg;
+	return bg;
 }
 
-/* 
- * builtin_cmd - If the user has typed a built-in command then execute
- *    it immediately.  
- */
-int builtin_cmd(char **argv) 
-{
-    return 0;     /* not a builtin command */
+int builtin_cmd(char **argv) {
+	if (strcmp(argv[0], "quit") == 0) { exit(0); }
+	return 0;
 }
 
 /***********************
