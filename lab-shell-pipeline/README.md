@@ -24,6 +24,11 @@ runs the programs specified in those commands.
 
 # Getting Started
 
+This section is intended to familiarize you with the concepts associated with
+the lab and the resources provided to help you complete it, including a
+walk-through usage of the reference shell.  You will begin coding in the
+[instructions](#instructions) section.
+
 ## Reading
 
 Read the following in preparation for this assignment:
@@ -331,12 +336,12 @@ arguments passed have the following values:
    argv[8] = NULL;
    ```
 
-   Because `execve()` takes are its second argument "an array of pointers to
+   Because `execve()` takes as its second argument "an array of pointers to
    null-terminated strings that represent the argument list" (ref: `man exec`),
    the `NULL` after each command and its arguments creates a natural delimiter
-   for that command.  For example, `argv[cmds[0]]` can be passed as the `argv`
-   argument to `execve()` for the first command, `argv[cmds[1]]` for the
-   second, etc.
+   for that command.  For example, `argv[cmds[0]]` can be passed as the
+   `filename` argument to `execve()` for the first command, `argv[cmds[1]]`
+   as the `filename` argument for the second, etc.
 
  - `stdin_redir` and `stdout_redir` have (like `cmds`) been populated with as
    many commands as have been identified in the pipeline (two in this case). In
@@ -359,8 +364,11 @@ arguments passed have the following values:
 
 # Instructions
 
+_This is where you start coding!_
+
 Flesh out the following functions in `tsh.c` to create a shell that supports
 command execution, input/output redirection, and pipelining.
+
 
 ## `builtin_cmd()`
 
@@ -381,9 +389,20 @@ in was _not_ a built-in command.
    from standard input in the read/eval loop.
 
 Parse the command line using `parseline()` and `parseargs()`, and pass the
-first command (and its arguments) in the pipeline to `builtin_cmd()`.  If
-`builtin_cmd()` indicates that it is not a built-in command (return value of
-0), then begin execution of the commands in the pipeline.
+first command (and its arguments) in the pipeline to `builtin_cmd()`.
+
+If `builtin_cmd()` indicates that it is not a built-in command (return value
+of 0), then begin execution of the commands in the pipeline, following the
+instructions in the next sections.
+
+### Checkpoint 1
+
+At this point, test your shell by 1) calling `make` to compile `tsh.c` and 2)
+entering `quit` at the command line.  It should terminate the shell as
+expected.  See the [example](#reference-tiny-shell) of `quit`.
+
+You can also test your work with [automated testing](#automated-testing).
+Tests 1 - 2 should work at this point.
 
 
 ### Single Command
@@ -404,7 +423,8 @@ the process is:
      `dup2()`), calling `close()` on only one of them will not close the
      file--only de-reference the file description entry.  So leave open only
      the file descriptors that you need; it is safe to close all others.  An
-     illustration of what the final product should look like is shown below:
+     illustration of what the final product should look like when a file is
+     opened for output redirection is shown below:
 
      <img src="redirection.png" width="400">
    - Run the executable in the context of the child process using `execve()`.
@@ -427,6 +447,8 @@ The tools that you will use for this are:
  - `waitpid()`
  - `execve()`
  - `setpgid()`
+
+### Checkpoint 2
 
 When you have gotten this far, test your shell by 1) calling `make` to compile
 `tsh.c` and 2) running the example command-line exercises
@@ -479,15 +501,29 @@ For each pair of commands, the process is:
 
      <img src="pipeline.png" width="400">
 
+     Note that file descriptor 2 (standard error) is not shown in the above
+     image for the sake of clarity.  File descriptor 2 should not closed; it
+     simply is unchanged.  See the redirection image in the
+     [previous section](#single-command) for an example.
+
      If your pipeline hangs, it is likely because some descriptors have
      accidentally been left open. Check, check, and check again.
    - Run the executable in the context of the child process using `execve()`.
  - In the parent process:
    - Assign the child process to a new group.  See instructions below for the
      group ID that should be used.
+   - Close any open file descriptors that are exclusively for use by the
+     child processes.
 
 Of course, you will need to make this work with an arbitrary number of command
-pairs.  A carefully designed loop can help with this.
+pairs.  A carefully designed loop can help with this.  For example, while your
+`pipe()` call must happen before both of your calls to `fork()`  (i.e., for a
+pair of commands / child processes), it could be that iteration `i` handles
+the `pipe()` call for a pair, but the corresponding `fork()` calls happen in
+iteration `i` and `i + 1`.  But as you iterate, remember that each call to
+`pipe()` yields two file descriptors.  Those descriptors are simply integers,
+but you will want to keep track of their values until they been served their
+purpose--e.g., for `dup2()`, `close()`, etc.
 
 The processes for all commands in a pipeline should be in the same progress
 group, and it is a different group than that of the parent (i.e., the shell).
@@ -525,6 +561,9 @@ The tools that you will use for this are:
  - `execve()`
  - `setpgid()`
 
+
+### Checkpoint 3
+
 When you have gotten this far, again test your shell by 1) calling `make` to
 compile `tsh.c` and 2) running the example command-line exercises
 [shown previously](#reference-tiny-shell) against _your_ shell.  All of them
@@ -537,29 +576,73 @@ Tests 1 - 3 and 34 - 42 should work at this point.
 # Automated Testing
 
 The trace files provided can be used to test the behavior of your shell in an
-automated fashion.
-
-
-To run your shell against trace file 1, run the following:
-
-```bash
-$ make stest01
-```
-
-Replace `stest01` with `stest02` to test against trace file 2, etc.
-
-For comparison, to run the reference shell against trace file 1, run the
+automated fashion, with the help of the driver.  Each trace file contains a
+brief description of the test, as well as a list of shell commands or other
+directives to be used in testing.  For example, `trace41.txt` contains the
 following:
 
+```
+#
+# trace41.txt - Pipeline with stdin/stdout redirection
+#
+/bin/echo -e tsh> ./myppid \0174 /bin/grep [0-9] \0076 TEMPFILE1
+./myppid | /bin/grep [0-9] > TEMPFILE1
+
+/bin/echo -e tsh> ./myppid \0174 /bin/grep [a-z] \0076 TEMPFILE2
+./myppid | /bin/grep [a-z] > TEMPFILE2
+
+/bin/echo -e tsh> /bin/cat TEMPFILE1
+/bin/cat TEMPFILE1
+
+/bin/echo -e tsh> /bin/cat TEMPFILE2
+/bin/cat TEMPFILE2
+
+/bin/echo -e tsh> /bin/cat \0074 TEMPFILE1 \0174 /bin/grep [0-9]
+/bin/cat < TEMPFILE1 | /bin/grep [0-9]
+
+/bin/echo -e tsh> /bin/cat \0074 TEMPFILE1 \0174 /bin/grep [a-z]
+/bin/cat < TEMPFILE1 | /bin/grep [a-z]
+```
+
+In this case, the shell receives and evaluates the following two lines as
+commands:
+
+```
+/bin/echo -e tsh> ./myppid \0174 /bin/grep [0-9] \0076 TEMPFILE1
+./myppid | /bin/grep [0-9] > TEMPFILE1
+```
+
+(Note that the first of each pair of commands in a trace file typically
+involves the command `/bin/echo`, and its job is simply to print out the second
+command. This makes the driver output a little easier to follow.)
+
+The words starting with `TEMPFILE` are not actual filenames.  Rather, each is a
+directive for the driver to dynamically create a (temporary) file with a
+random name that is guaranteed to be unique.  This is so it doesn't accidentally
+overwrite an existing file on the filesystem.  These files are deleted by the
+driver when it is done running the trace.
+
+Some trace files also contain directives in place of commands.  For example, a
+line that begins with the word `SLEEP` is not actually a command, but rather a
+directive that the driver should wait for a designated number of seconds before
+executing the next command.   The  `INT` and `TSTP` directives direct the
+driver to send a `SIGINT` or a `SIGTSTP` to the shell, simulating a `ctrl`+`c`
+or `ctrl`+`z`, respectively.
+
+To run the _reference_ shell against the a `trace41.txt`, use the following:
+
 ```bash
-$ make rtest01
+$ make rtest41
 ```
 
-Running the tiny shell against a trace file has generates the same output you
-would have gotten had you run your shell interactively (except for an initial
-comment that identifies the trace and its description). For example:
+Replace `rtest41` with `rtest01`, `rtest02`, etc., to test the reference shell
+against `trace01.txt`, `trace02.txt`, etc.
 
-```
+Running the tiny shell against a trace file generates the same output you would
+have gotten had you run your shell interactively (except for an initial comment
+that identifies the trace and its description).  For example:
+
+```bash
 $ make rtest41
 #
 # trace41.txt - Pipeline with stdin/stdout redirection
@@ -575,17 +658,24 @@ tsh> /bin/cat < tshtmp-1-1KEnkI | /bin/grep [0-9]
 tsh> /bin/cat < tshtmp-1-1KEnkI | /bin/grep [a-z]
 ```
 
-Thus, you can by comparing the output of `make stest` with that of `make
-rtest`, you can see how well your tiny shell did against the reference shell.
-This can be automated with:
+For comparison, to run _your_ shell against `trace41.txt`, run the following:
+
+```bash
+$ make stest41
+```
+
+By comparing the output of `make stest` with that of `make rtest`, you can see
+how well your tiny shell did against the reference shell.  This can be
+automated with:
 
 ```
-$ make test01
+$ make test41
 ```
 
 (etc.)
 
-Additonally, to run comparison against _all_ traces, you can run the following:
+Additonally, to run a comparison against _all_ traces, you can run the
+following:
 
 ```
 $ make testall
