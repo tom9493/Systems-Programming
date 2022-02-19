@@ -39,14 +39,17 @@ walk-through usage of the reference shell.  You will begin coding in the
 ## Reading
 
 Read the following in preparation for this assignment:
-  - Sections 8.2 - 8.4 and 10.8 - 10.10 in the book
+  - Sections 8.2 - 8.5
   - The man pages for the following system calls:
     - `fork()`
-    - `signal()`
+    - `signal`
+    - `sigaction()`
+    - `sigprocmask()`
     - `waitpid()`
     - `exec`
     - `execve()`
     - `setpgid()`
+    - `kill()`
 
 
 ## Resources Provided
@@ -132,7 +135,7 @@ command:
  - `/bin/sleep 10 &` - the command entered on the command line, including the
    `&` operator.
 
-If enter `jobs` at the prompt while `/bin/sleep 10` is still running in the
+If you enter `jobs` at the prompt while `/bin/sleep 10` is still running in the
 background, you will see a list of all the currently stopped and
 _backgrounded_ jobs, noting that there is, at the moment, only one:
 
@@ -206,8 +209,8 @@ In this case:
 
 ### Non-Existent Commands
 
-The shell is no dummy.  If you pass it a command is neither the valid path of
-an executable nor a built-in command, it will complain!
+The shell is no dummy.  If you pass it a command that is neither the valid path
+of an executable nor a built-in command, it will complain!
 
 ```bash
 tsh> /does/not/exist
@@ -241,7 +244,7 @@ So far we have simply _started_ commands in either the foreground or the
 background and let them run to completion.  But this shell can also change the
 state of a job, _after_ it has started running.  A few examples follow.
 
-To change the state of a foreground job to _stopped, _press `ctrl`+`z`:
+To change the state of a foreground job to _stopped_, press `ctrl`+`z`:
 
 ```bash
 tsh> /bin/sleep 20
@@ -547,7 +550,10 @@ Several functions have been written to help you parse the command line.
 
 `parseline()` finds all the words (i.e., non-whitespace characters separated by
 whitespace) on the command line and puts them into an array of strings which
-is passed in as an argument: `char **argv` (i.e., an array of `char *`).
+is passed in as an argument: `char **argv` (i.e., an array of `char *`).  It
+returns true if the last word on the command line is the background operator,
+`&`; false otherwise.  Thus, you can use the return value to determine whether
+or not the job should start out in the background or foreground, respectively.
 
 For example, suppose the following command line is provided to your shell:
 
@@ -566,10 +572,29 @@ argv[2] = NULL;
 (A `NULL` value at index 2 indicates that that there are no more words, so your
 code can detect that programmatically.)
 
+In this case, `parseline()` will return `0` (false).  However, if the command
+line had been the following:
+
+```bash
+$ /bin/cat test.txt &
+```
+
+Then `argv` would still contain the following after calling `parseline()`:
+
+```c
+argv[0] = "/bin/cat";
+argv[1] = "test.txt";
+argv[2] = NULL;
+```
+
+But `parseline()` would return `1` (true).
+
 
 #### Job Handling Functions
 
-The following functions are used for 
+The following functions are used for manipulating the global array of job
+structures (`struct job_t`), `jobs`:
+
  - `clearjob()` - clears the entries in a job struct
  - `maxjid()` - returns the largest allocated job ID
  - `addjob()` - adds a job to the job list
@@ -585,8 +610,23 @@ The following functions are used for
 
 _This is where you start coding!_
 
+Before you begin, _comment out_ the following line of code:
+
+```c
+    Signal(SIGINT,  sigint_handler);   /* ctrl-c */
+```
+
+As you are working on the first parts the lab, there will be times when it will
+be desirable for you to interrupt your running shell, i.e., with `ctrl`+`c`.
+Because the function `sigint_handler()` is currently empty, using it as the
+handler for `SIGINT` will have the behavior of `SIGINT` being ignored.  This
+might be confusing to you and can also be cumbersome to work around.
+Commenting out the above line of code will therefore make development easier.
+You will un-comment the line when you get the appropriate point in the lab.
+
 Flesh out the following functions in `tsh.c` to create a shell that supports
 command execution, signal handling, and job control.
+
 
 ## `builtin_cmd()`
 
@@ -615,8 +655,8 @@ indicator that the command passed in was _not_ a built-in command.
 
 Parse the command line using `parseline()`.  Call `builtin_cmd()` to see if the
 command line corresponds to a built-in command.  Otherwise, do the following:
- - Fork a child process.
  - Block `SIGCHLD`, `SIGINT`, and `SIGTSTP` signals.
+ - Fork a child process.
  - In the child process:
    - Unblock signals by restoring the mask.
    - Run the executable in the context of the child process using `execve()`.
@@ -787,6 +827,13 @@ void sigint_handler(int sig)
 
 Then do something similar for `sigtstp_handler()`.
 
+Now _un-comment_ the line of code that installs the handler for `SIGINT` (i.e.,
+the one you commented out before you began coding).:
+
+```c
+    Signal(SIGINT,  sigint_handler);   /* ctrl-c */
+```
+
 Now call `make` to compile `tsh.c`, then start the shell with the `-v` option.
 Then repeat the commands from the [Changing Job State](#changing-job-state) or 
 [Interrupting Jobs](#interrupting-jobs) sections that include the `ctrl`+`c` or
@@ -797,6 +844,7 @@ print statement when they are entered.
 Now add the appropriate code for `sigint_handler()` and `sigtstp_handler()`,
 such that the signal received is sent by the shell to the process group of the
 foreground job, if any.
+
 
 ## Checkpoint 3
 
