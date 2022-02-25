@@ -43,7 +43,7 @@ both communication types.
 
  6. You will be doing a writeup on this assignment. Call your writeup
     `sockets.txt`. Make sure you answer any questions/provide outputs as
-    stated in the *bolded* questions/statements (there should be XX in all).
+    stated in the *bolded* questions/statements (there should be 28 in all).
 
 
 ## Strings and Bytes
@@ -74,7 +74,7 @@ fputs(buf, stdout);
 write(1, buf, 3);
 ```
 
-`fputs()` stops at index 2 (value 'c'`) because of the null value at index 3,
+`fputs()` stops at index 2 (value `'c'`) because of the null value at index 3,
 whereas `write()` could care less about the character with null value.  In
 fact, `write()` will continue writing characters from the start of `buf`, for
 as long you designate.  For example:
@@ -234,7 +234,7 @@ the number of `recvfrom()` calls on the server.  Let's make some modifications
 to both client and server code to better understand what is going on:
 
  - Modify `server.c`:
-   - sleeps for 2 seconds immediately after calling `recvfrom()` on the socket.
+   - sleep for 2 seconds immediately after calling `recvfrom()` on the socket.
    - remove the `printf()` statements that you added earlier around the
      `recvfrom()` statement.
  - Modify `client.c` such that it does not attempt to read from the
@@ -257,7 +257,8 @@ before.
  7. *How many total calls to `send()` / `write()` were made by the client?*
     Refer to `client.c`.
  8. *How many messages were received by the kernel of the server-side process
-    _before_ the server called `recvfrom()` the second time?*
+    _before_ the server called `recvfrom()` the second time (i.e., _between_
+    the server's first and seconds calls to `recvfrom()`)?
  9. *How many total calls to `recvfrom()` were required for the server process
     to read all the messages/bytes that were sent?*
  10. *Why didn't the server read all the messages that were ready with a single
@@ -412,10 +413,11 @@ $ ./client -4 hostname port foo bar abc123
  17. *How many total calls to `send()` / `write()` were made by the client?*
      Refer to `client.c`.
  18. *How many messages were received by the kernel of the server-side process
-     _before_ the server called `recvfrom()` the second time?*
- 19. *How many total calls to `recvfrom()` were required for the server process
+     _before_ the server called `recv()` the second time (i.e., _between_ the
+     server's first and seconds calls to `recv()`)?*
+ 19. *How many total calls to `recv()` were required for the server process
      to read all the messages/bytes that were sent?*
- 20. *How and why does the answer to #18 differ from that from #9?*
+ 20. *How and why does the answer to #19 differ from that from #9?*
      Hint: see the man page for `tcp`, specifically within the first paragraph
      of the "DESCRIPTION" section.
 
@@ -449,8 +451,7 @@ the socket connection is established:
    accordingly.
 
 In the top-left "remote" pane, start a netcat (`nc` command) server listening
-for incoming TCP connections on a port of your choosing, and such that its
-output is piped to the `sha1sum` command:
+for incoming TCP connections on a port of your choosing:
 
 ```bash
 $ nc -l port
@@ -462,7 +463,7 @@ Now test your client program by running the following in the top-right "local"
 pane:
 
 ```bash
-$ ./client < alpha.txt
+$ ./client -4 hostname port < alpha.txt
 ```
 
 Because the open file descriptor associated with `alpha.txt` will be duplicated
@@ -479,7 +480,7 @@ $ nc -l port | sha1sum
 Then re-run the client program:
 
 ```bash
-$ ./client < alpha.txt
+$ ./client -4 hostname port < alpha.txt
 ```
 
  21. *What is the output of `sha1sum`?*
@@ -534,8 +535,8 @@ Note that after you have run your program, `bestill.txt` should contain:
  - all three verses to a hymn.
 
 
- 22. *Show the command pipeline that you used to run your client program and
-     issue the request.*
+ 22. *Show the command that you used to run your client program and
+     issue the request, including input and output redirection.*
 
  23. *Show the output to the following:*
      ```bash
@@ -566,6 +567,8 @@ program (e.g., a Web browser) to check its correctness.
      ```bash
      $ sha1sum socket.jpg
      ```
+
+     Hint: it should start with `c03ce59...`
 
 
 ## Part 4: Review Questions
