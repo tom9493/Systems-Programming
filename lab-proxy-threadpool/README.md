@@ -312,7 +312,7 @@ Host: www-notls.imaal.byu.edu
 In the second example, port 80 is implied.
 
 In summary, for the new HTTP request that was created:
-- The *URL* in the first line, as received by the client, was changed to be a
+- The *URL* in the first line, as received from the client, was changed to be a
   *path* (plus query string).
 - The protocol is always HTTP/1.0 (this simplifies the client-server
   interaction for the purposes of this lab).
@@ -490,7 +490,7 @@ $ ./proxy port
 Then in another window on the same machine, run the following:
 
 ```bash
-$ curl -o tmp1 http://www-notls.imaal.byu.edu/cgi-bin/index.html
+$ curl -o tmp1 http://www-notls.imaal.byu.edu/index.html
 $ ./slow-client.py -o tmp2 -b 1 http://www-notls.imaal.byu.edu/index.html
 $ curl -o tmp3 "http://www-notls.imaal.byu.edu/cgi-bin/slowsend.cgi?obj=lyrics"
 $ ./slow-client.py -o tmp4 -b 1 "http://www-notls.imaal.byu.edu/cgi-bin/slowsend.cgi?obj=lyrics"
@@ -510,7 +510,7 @@ it will sleep in between lines that it sends.
 Now run the following:
 
 ```bash
-$ curl -o tmp1p -x http://localhost:port/ http://www-notls.imaal.byu.edu/cgi-bin/index.html
+$ curl -o tmp1p -x http://localhost:port/ http://www-notls.imaal.byu.edu/index.html
 $ ./slow-client.py -o tmp2p -x http://localhost:port/ -b 1 http://www-notls.imaal.byu.edu/index.html
 $ curl -o tmp3p -x http://localhost:port/ "http://www-notls.imaal.byu.edu/cgi-bin/slowsend.cgi?obj=lyrics"
 $ ./slow-client.py -o tmp4p -x http://localhost:port/ -b 1 "http://www-notls.imaal.byu.edu/cgi-bin/slowsend.cgi?obj=lyrics"
