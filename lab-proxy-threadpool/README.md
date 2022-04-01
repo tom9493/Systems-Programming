@@ -14,7 +14,7 @@ programming by building a working HTTP proxy server with a threadpool.
    - [Part 1 - HTTP Request Parsing](#part-1---http-request-parsing)
      - [`all_headers_received`](#all_headers_received)
      - [`parse_request`](#parse_request)
-     - [`Testing`](#testing)
+     - [Testing](#testing)
    - [Part 2 - Sequential HTTP Proxy](#part-2---sequential-http-proxy)
      - [Receiving the HTTP Request](#receiving-the-http-request)
      - [Creating an HTTP Request](#creating-an-http-request)
