@@ -8,12 +8,23 @@ concepts by building a working HTTP proxy server that uses epoll.
 
 # Table of Contents
 
+
  - [Overview](#overview)
+   - [Non-Blocking I/O](#non-blocking-io)
+   - [Client Request States](#client-request-states)
+   - [Client Request Data](#client-request-data)
  - [Preparation](#preparation)
    - [Reading](#reading)
+   - [epoll Echo Server Example](#epoll-echo-server-example)
  - [Instructions](#instructions)
    - [Part 1 - HTTP Request Parsing](#part-1---http-request-parsing)
    - [Part 2 - I/O Multiplexing HTTP Proxy](#part-2---io-multiplexing-http-proxy)
+     - [Handling a New HTTP Client](#handling-a-new-http-client)
+     - [Receiving the HTTP Request](#receiving-the-http-request)
+     - [Creating an HTTP Request](#creating-an-http-request)
+     - [Communicating with the HTTP Server](#communicating-with-the-http-server)
+     - [Returning the HTTP Response](#returning-the-http-response)
+     - [Testing](#testing)
  - [Testing](#testing-1)
    - [Manual Testing - Non-Local Server](#manual-testing---non-local-server)
    - [Manual Testing - Local Server](#manual-testing---local-server)
@@ -227,6 +238,21 @@ Read the following in preparation for this assignment:
     - `bind()`
     - `connect()`
     - `getaddrinfo()`
+
+
+## epoll Echo Server Example
+
+The `echoserver-epoll` directory contains a working version of a echo server
+using epoll, complete with non-blocking sockets and edge-triggered monitoring.
+To compile it, run the following from the `echoserver-epoll` directory:
+
+```bash
+$ gcc -o echoservere echoservere.c
+```
+
+You can use the code as a guide for building your HTTP proxy server with epoll.
+It runs the same way as the echo server implementations from the
+[concurrency homework assignment](https://github.com/cdeccio/byu-cs324-w2022/tree/master/hw-concurrency).
 
 
 # Instructions
@@ -477,7 +503,7 @@ Your score will be computed out of a maximum of 100 points based on the
 following distribution:
 
  - 20 for basic HTTP proxy functionality
- - 75 for handling concurrent HTTP proxy requests using a threadpool
+ - 75 for handling concurrent HTTP proxy requests using epoll
  - 5 - compiles without any warnings (this applies to your proxy code, not
    `tiny` and friends).
 
