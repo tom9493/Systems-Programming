@@ -230,7 +230,7 @@ Read the following in preparation for this assignment:
       monitoring).
     - `epoll_wait` - shows the usage of the simple `epoll_wait()` function,
       including how events are returned and how errors are indicated,
-    - `fnctl()`
+    - `fcntl()`
     - `socket`
     - `socket()`
     - `send()`
