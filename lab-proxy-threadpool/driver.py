@@ -506,7 +506,10 @@ class ProxyTest:
             try:
                 output = subprocess.check_output(['diff', '-u', file1, file2])
             except subprocess.CalledProcessError as e:
-                self.logger.debug(e.output.decode('utf-8'))
+                try:
+                    self.logger.debug(e.output.decode('utf-8'))
+                except UnicodeDecodeError:
+                    self.logger.debug(e.output.decode('latin1'))
             return False
         else:
             self.logger.info('Files %s and %s are the same' % (file1, file2))

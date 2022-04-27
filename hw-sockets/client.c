@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = af;    /* Allow IPv4, IPv6, or both, depending on
 				    what was specified on the command line. */
-	hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+	hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
 	hints.ai_flags = 0;
 	hints.ai_protocol = 0;  /* Any protocol */
 
@@ -85,34 +85,61 @@ int main(int argc, char *argv[]) {
 	freeaddrinfo(result);   /* No longer needed */
 
 	/* SECTION C - interact with server; send, receive, print messages */
+	char buffer[4096];
+	size_t size = 1;
+	int buf_offset = 0;
+	size_t c = 512;
 
-	/* Send remaining command-line arguments as separate
-	   datagrams, and read responses from server */
+	while(c == 512) { 
+		c = fread(buffer + buf_offset, size, 512, stdin);
+		buf_offset += (c * size);
+	}
 
-	for (j = hostindex + 2; j < argc; j++) {
-		len = strlen(argv[j]) + 1;
-		/* +1 for terminating null byte */
-
-		if (len + 1 > BUF_SIZE) {
-			fprintf(stderr,
-					"Ignoring long message in argument %d\n", j);
-			continue;
-		}
-
-		if (write(sfd, argv[j], len) != len) {
-			fprintf(stderr, "partial/failed write\n");
-			exit(EXIT_FAILURE);
-		}
-
-		nread = read(sfd, buf, BUF_SIZE);
-		if (nread == -1) {
-			perror("read");
-			exit(EXIT_FAILURE);
-		}
-
-		printf("Received %zd bytes: %s\n", nread, buf);
+	int bytes_sent = 0;
+	while(bytes_sent < buf_offset) {
+		bytes_sent += send(sfd, buffer + bytes_sent, size, 0);
+	}
+	
+	char s_buf[16384];
+	c = 512;
+	int bytes_read = 0;
+	while(c != 0) {
+		c = read(sfd, s_buf + bytes_read, 512);
+		bytes_read += c;
 
 	}
+
+	int bytes_written = 0;
+	while (bytes_written < bytes_read) {
+		bytes_written += fwrite(s_buf + bytes_written, 1, 512, stdout);
+	}
+	/* Send remaining command-line arguments as separate
+	   datagrams, and read responses from server */
+	//sleep(30);
+//	for (j = hostindex + 2; j < argc; j++) {
+//		len = strlen(argv[j]) + 1;
+		/* +1 for terminating null byte */
+
+//		if (len + 1 > BUF_SIZE) {
+//			fprintf(stderr,
+//					"Ignoring long message in argument %d\n", j);
+//			continue;
+//		}
+
+//		if (write(sfd, argv[j], len) != len) {
+//			fprintf(stderr, "partial/failed write\n");
+//			exit(EXIT_FAILURE);
+//		}
+
+		//nread = read(sfd, buf, BUF_SIZE);
+//		if (nread == -1) {
+//			perror("read");
+//			exit(EXIT_FAILURE);
+//		}
+
+		//printf("Received %zd bytes: %s\n", nread, buf);
+
+//	}
 
 	exit(EXIT_SUCCESS);
 }
